@@ -44,7 +44,7 @@ class _LoadingState extends State<Loading> {
 
   void _startTimer() {
     sendPostRequest();
-    _timer = Timer.periodic(const Duration(minutes: 5), (_) {
+    _timer = Timer.periodic(const Duration(minutes: 1), (_) {
       sendPostRequest();
     });
   }
@@ -73,6 +73,7 @@ class _LoadingState extends State<Loading> {
       'dataStatus': 'on', // You might need to implement a way to check this
       'permissionMissing': [] // You might want to check for other permissions here
     };
+    print(body);
 
     try {
       final response = await http.post(
@@ -97,8 +98,10 @@ class _LoadingState extends State<Loading> {
     }
   }
 
+
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Auto Tracking'),
