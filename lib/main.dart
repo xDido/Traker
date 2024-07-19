@@ -14,7 +14,7 @@ void callbackDispatcher() {
     await Workmanager().registerOneOffTask(
       taskName,
       taskName,
-      initialDelay: Duration(minutes: 2),
+      initialDelay: Duration(minutes: 1),
     );
 
     print("Task rescheduled");

@@ -94,7 +94,7 @@ class _LoadingState extends State<Loading> {
     Workmanager().registerOneOffTask(
       taskName,
       taskName,
-      initialDelay: Duration(minutes: 2),
+      initialDelay: Duration(minutes: 1),
     );
   }
 
