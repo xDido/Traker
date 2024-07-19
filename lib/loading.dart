@@ -5,6 +5,55 @@ import 'dart:async';
 import 'package:geolocator/geolocator.dart';
 import 'package:battery_plus/battery_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:device_info_plus/device_info_plus.dart';
+import 'package:workmanager/workmanager.dart';
+
+const String taskName = "com.example.repeatingTask";
+
+Future<void> sendPostRequest() async {
+  try {
+    final String url = 'https://script.google.com/macros/s/AKfycbxloBer49j8CFgbd8LvKWZcTR0Tn46D_ta39Nfofr8dWqnT05sBT6uTyG6lu0u44ymjmw/exec';
+
+    Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+    Battery battery = Battery();
+    int batteryLevel = await battery.batteryLevel;
+
+    String deviceId = await getDeviceId();
+
+    Map<String, dynamic> body = {
+      'driverUniqueID': deviceId,
+      'coordinates': '${position.latitude},${position.longitude}',
+      'date': DateTime.now().toString().split(' ')[0],
+      'time': DateTime.now().toString().split(' ')[1].substring(0, 5),
+      'batteryLevel': batteryLevel,
+      'appStatus': 'background',
+      'dataStatus': 'on',
+      'permissionMissing': []
+    };
+
+    final response = await http.post(
+      Uri.parse(url),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode(body),
+    );
+
+    print('POST request sent. Status: ${response.statusCode} at time ${DateTime.now().toString().split(' ')[1].substring(0, 5)}');
+
+  } catch (e) {
+    print('Error in sendPostRequest: $e');
+  }
+}
+
+Future<String> getDeviceId() async {
+  DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
+  try {
+    AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
+    return androidInfo.id;
+  } catch (e) {
+    print('Error getting device info: $e');
+  }
+  return 'Unknown';
+}
 
 class Loading extends StatefulWidget {
   const Loading({Key? key}) : super(key: key);
@@ -15,26 +64,25 @@ class Loading extends StatefulWidget {
 
 class _LoadingState extends State<Loading> {
   String _responseData = 'No data yet';
-  Timer? _timer;
-  final Battery _battery = Battery();
+  String _deviceId = 'Unknown';
 
   @override
   void initState() {
     super.initState();
     _checkPermissions();
+    _getDeviceId();
   }
 
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
+  Future<void> _getDeviceId() async {
+    _deviceId = await getDeviceId();
+    setState(() {});
   }
 
   Future<void> _checkPermissions() async {
-    // Request location permission
-    var status = await Permission.location.request();
-    if (status.isGranted) {
-      _startTimer();
+    var locationStatus = await Permission.location.request();
+    var backgroundStatus = await Permission.locationAlways.request();
+    if (locationStatus.isGranted && backgroundStatus.isGranted) {
+      _startBackgroundTask();
     } else {
       setState(() {
         _responseData = 'Location permission denied';
@@ -42,78 +90,32 @@ class _LoadingState extends State<Loading> {
     }
   }
 
-  void _startTimer() {
-    sendPostRequest();
-    _timer = Timer.periodic(const Duration(minutes: 1), (_) {
-      sendPostRequest();
-    });
+  void _startBackgroundTask() {
+    Workmanager().registerOneOffTask(
+      taskName,
+      taskName,
+      initialDelay: Duration(minutes: 2),
+    );
   }
-
-  Future<void> sendPostRequest() async {
-    setState(() {
-      _responseData = 'Sending request...';
-    });
-
-    final String url = 'https://script.google.com/macros/s/AKfycbxloBer49j8CFgbd8LvKWZcTR0Tn46D_ta39Nfofr8dWqnT05sBT6uTyG6lu0u44ymjmw/exec';
-
-    // Get current position
-    Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
-
-    // Get battery level
-    int batteryLevel = await _battery.batteryLevel;
-
-    Map<String, dynamic> body = {
-      'driverUniqueID': 'your_driver_id', // You might want to use SharedPreferences to store and retrieve this
-      'coordinates': '${position.longitude},${position.latitude}',
-      'date': DateTime.now().toString().split(' ')[0],
-      'time': DateTime.now().toString().split(' ')[1].substring(0, 5),
-      'batteryLevel': batteryLevel,
-      'mobileStatus': 'on', // You might need to implement a way to check this
-      'appStatus': 'installed',
-      'dataStatus': 'on', // You might need to implement a way to check this
-      'permissionMissing': [] // You might want to check for other permissions here
-    };
-    print(body);
-
-    try {
-      final response = await http.post(
-        Uri.parse(url),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode(body),
-      );
-
-      if (response.statusCode == 200) {
-        setState(() {
-          _responseData = 'POST request successful\nResponse: ${response.body}';
-        });
-      } else {
-        setState(() {
-          _responseData = 'POST request failed\nStatus code: ${response.statusCode}\nResponse: ${response.body}';
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _responseData = 'Error occurred: $e';
-      });
-    }
-  }
-
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Auto Tracking'),
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text('Auto-sending every 5 minutes'),
-            const SizedBox(height: 20),
-            Text(_responseData),
-          ],
+      body: SafeArea(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text('Tracking every 1 minutes'),
+              const SizedBox(height: 20),
+              Text('Device ID: $_deviceId'),
+              const SizedBox(height: 20),
+              Text(_responseData),
+            ],
+          ),
         ),
       ),
     );

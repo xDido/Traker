@@ -1,12 +1,37 @@
 import 'package:flutter/material.dart';
-import 'loading.dart'; // Import the file where you defined the Loading widget
+import 'package:workmanager/workmanager.dart';
+import 'loading.dart';
 
-void main() {
+const String taskName = "com.example.repeatingTask";
+
+@pragma('vm:entry-point')
+void callbackDispatcher() {
+  Workmanager().executeTask((task, inputData) async {
+    print("Background task started");
+    await sendPostRequest();
+
+    // Reschedule the task
+    await Workmanager().registerOneOffTask(
+      taskName,
+      taskName,
+      initialDelay: Duration(minutes: 2),
+    );
+
+    print("Task rescheduled");
+    return Future.value(true);
+  });
+}
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Workmanager().initialize(
+      callbackDispatcher,
+      isInDebugMode: true
+  );
   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
-
   const MyApp({Key? key}) : super(key: key);
 
   @override
@@ -16,8 +41,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const Loading(), // Use the Loading widget as the home screen
+      home: const Loading(),
     );
   }
-
 }
