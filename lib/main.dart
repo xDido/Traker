@@ -1,33 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:workmanager/workmanager.dart';
-import 'loading.dart';
-
-const String taskName = "com.example.repeatingTask";
-
-@pragma('vm:entry-point')
-void callbackDispatcher() {
-  Workmanager().executeTask((task, inputData) async {
-    print("Background task started");
-    await sendPostRequest();
-
-    // Reschedule the task
-    await Workmanager().registerOneOffTask(
-      taskName,
-      taskName,
-      initialDelay: Duration(minutes: 1),
-    );
-
-    print("Task rescheduled");
-    return Future.value(true);
-  });
-}
+import 'screens/loading_screen.dart';
+import 'utils/background_task.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Workmanager().initialize(
-      callbackDispatcher,
-      isInDebugMode: true
-  );
+  await Workmanager().initialize(callbackDispatcher, isInDebugMode: true);
   runApp(const MyApp());
 }
 
@@ -38,10 +16,8 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Tracker App',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
-      home: const Loading(),
+      theme: ThemeData(primarySwatch: Colors.blue),
+      home: const LoadingScreen(),
     );
   }
 }
