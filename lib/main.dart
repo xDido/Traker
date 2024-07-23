@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:workmanager/workmanager.dart';
 import 'screens/loading_screen.dart';
 import 'utils/background_task.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Workmanager().initialize(callbackDispatcher, isInDebugMode: true);
+  await initializeBackgroundTasks();
   runApp(const MyApp());
 }
 

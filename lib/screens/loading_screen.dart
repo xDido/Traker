@@ -10,15 +10,33 @@ class LoadingScreen extends StatefulWidget {
   _LoadingScreenState createState() => _LoadingScreenState();
 }
 
-class _LoadingScreenState extends State<LoadingScreen> {
+class _LoadingScreenState extends State<LoadingScreen> with WidgetsBindingObserver {
   String _responseData = 'No data yet';
   String _deviceId = 'Unknown';
+  late LocationTracker _locationTracker;
 
   @override
   void initState() {
     super.initState();
+    _locationTracker = LocationTracker();
     _checkPermissions();
     _getDeviceId();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _locationTracker.startForegroundTracking();
+    } else if (state == AppLifecycleState.paused) {
+      _locationTracker.stopForegroundTracking();
+    }
   }
 
   Future<void> _getDeviceId() async {
@@ -29,7 +47,10 @@ class _LoadingScreenState extends State<LoadingScreen> {
   Future<void> _checkPermissions() async {
     bool hasPermissions = await LocationService.checkAndRequestPermissions();
     if (hasPermissions) {
-      startBackgroundTask();
+      _locationTracker.startTracking(context);
+      setState(() {
+        _responseData = 'Tracking started';
+      });
     } else {
       setState(() {
         _responseData = 'Location permission denied';
@@ -48,7 +69,8 @@ class _LoadingScreenState extends State<LoadingScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text('Tracking every 1 minutes'),
+              const Text('Tracking every 5 minutes when app is open'),
+              const Text('Tracking every 15 minutes when app is minimized'),
               const SizedBox(height: 20),
               Text('Device ID: $_deviceId'),
               const SizedBox(height: 20),
