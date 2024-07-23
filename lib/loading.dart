@@ -22,7 +22,8 @@ Future<void> sendPostRequest() async {
 
     Map<String, dynamic> body = {
       'driverUniqueID': deviceId,
-      'coordinates': '${position.latitude},${position.longitude}',
+      'Device Model': 'test',
+      'coordinates' : '${position.latitude},${position.longitude}',
       'date': DateTime.now().toString().split(' ')[0],
       'time': DateTime.now().toString().split(' ')[1].substring(0, 5),
       'batteryLevel': batteryLevel,
